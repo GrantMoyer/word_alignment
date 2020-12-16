@@ -92,22 +92,26 @@ def main():
 
 	for word_string in args.words:
 		factor = 1 / np.sqrt(2)
-		word = embeddings[dictionary == word_string][0]
+		try:
+			word = embeddings[dictionary == word_string][0]
+		except IndexError:
+			print(f'Unkown word: {word_string}', file=sys.stderr)
+			continue
 		_, indices = kd_embeddings.query(word, k=args.num_neighbors + 1)
 		neighbors = embeddings[indices]
 		neighbors_aligned = neighbors @ np.linalg.inv(alignment_basis)
 		word_aligned = neighbors_aligned[0,:]
 		neighbors_centered = neighbors_aligned[1:,:] - word_aligned
 
-		word_lawful_good = indices[find_most(base_lawful + base_good, neighbors_centered)]
-		word_lawful_neutral = indices[find_most(base_lawful, neighbors_centered)]
-		word_lawful_evil = indices[find_most(base_lawful - base_good, neighbors_centered)]
-		word_neutral_good = indices[find_most(base_good, neighbors_centered)]
+		word_lawful_good = indices[1 + find_most(base_lawful + base_good, neighbors_centered)]
+		word_lawful_neutral = indices[1 + find_most(base_lawful, neighbors_centered)]
+		word_lawful_evil = indices[1 + find_most(base_lawful - base_good, neighbors_centered)]
+		word_neutral_good = indices[1 + find_most(base_good, neighbors_centered)]
 		word_neutral_neutral = indices[0]
-		word_neutral_evil = indices[find_most(-base_good, neighbors_centered)]
-		word_chaotic_good = indices[find_most(-base_lawful + base_good, neighbors_centered)]
-		word_chaotic_neutral = indices[find_most(-base_lawful, neighbors_centered)]
-		word_chaotic_evil = indices[find_most(-base_lawful - base_good, neighbors_centered)]
+		word_neutral_evil = indices[1 + find_most(-base_good, neighbors_centered)]
+		word_chaotic_good = indices[1 + find_most(-base_lawful + base_good, neighbors_centered)]
+		word_chaotic_neutral = indices[1 + find_most(-base_lawful, neighbors_centered)]
+		word_chaotic_evil = indices[1 + find_most(-base_lawful - base_good, neighbors_centered)]
 
 		table = (
 			(word_lawful_good,    word_neutral_good,    word_chaotic_good),
