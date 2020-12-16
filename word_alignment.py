@@ -17,29 +17,106 @@ class RecursionLimitManager:
 def recursionlimit(lim):
 	return RecursionLimitManager(lim)
 
+def project_words(words, good, evil, lawful, chaotic):
+	neutral_morality = (good + evil) / 2
+	neutral_order = (lawful + chaotic) / 2
+	basis = np.identity(words.shape[0])
+	basis[:,0:1] = good - neutral_morality
+	basis[:,1:2] = lawful - neutral_morality
+	basis[:,2:3] = neutral_order - neutral_morality
+
+	projected = np.linalg.inv(basis)[0:2,:] @ (words - neutral_morality)
+	return projected
+
+def find_most(base, words):
+	proj = words * base
+	sum = proj.sum(axis=1)
+	return sum.argmax()
+
 def main():
 	parser = argparse.ArgumentParser(description='Given an arbitrary english word, generates an alignment chart of similar words.')
 	parser.add_argument(
-		'-w', '--words',
+		'-d', '--dictionary',
 		metavar='file',
-		default='numberbatch-en-19.08-words.npy.lz4',
-		help='A data file containing word embeddings. By default %(default)s.',
+		default='numberbatch-en-19.08-dictionary.npy.lz4',
+		help='A data file containing the dictionary. By default %(default)s.',
 	)
 	parser.add_argument(
 		'-e', '--embeddings',
 		metavar='file',
 		default='numberbatch-en-19.08-embeddings.npy.lz4',
-		help='A data file containing word embeddings. By default %(default)s.',
+		help='A data file containing word embeddings of the dictionary. By default %(default)s.',
+	)
+	parser.add_argument(
+		'-n', '--num-neighbors',
+		metavar='int',
+		type=int,
+		default='32',
+		help='The number of neighbor words to check for most good, evil, lawful, and chaotic. By default %(default)s.',
+	)
+	parser.add_argument(
+		'words',
+		metavar='word',
+		nargs='+',
+		help='The word(s) to generate alignment charts for.',
 	)
 	args = parser.parse_args()
 
-	with lz4.frame.open(args.words, 'rb') as f:
-		words = np.load(f)
+	with lz4.frame.open(args.dictionary, 'rb') as f:
+		dictionary = np.load(f)
 	with lz4.frame.open(args.embeddings, 'rb') as f:
 		embeddings = np.load(f)
 
 	with recursionlimit(10000):
 		kd_embeddings = scipy.spatial.cKDTree(embeddings, 1000)
+
+	good = embeddings[dictionary == 'good'][0]
+	evil = embeddings[dictionary == 'evil'][0]
+	lawful = embeddings[dictionary == 'lawful'][0]
+	chaotic = embeddings[dictionary == 'chaotic'][0]
+
+	goodness = good - evil
+	lawfulness = lawful - chaotic
+
+	most_good = np.abs(goodness).argmax()
+	most_lawful = np.abs(lawfulness).argmax()
+	alignment_basis = np.identity(embeddings.shape[1])
+	alignment_basis[most_good,:] = goodness
+	alignment_basis[most_lawful,:] = lawfulness
+
+	base_good = np.zeros(embeddings.shape[1])
+	base_good[most_good] = 1
+
+	base_lawful = np.zeros(embeddings.shape[1])
+	base_lawful[most_lawful] = 1
+
+	for word_string in args.words:
+		factor = 1 / np.sqrt(2)
+		word = embeddings[dictionary == word_string][0]
+		_, indices = kd_embeddings.query(word, k=args.num_neighbors + 1)
+		neighbors = embeddings[indices]
+		neighbors_aligned = neighbors @ np.linalg.inv(alignment_basis)
+		word_aligned = neighbors_aligned[0,:]
+		neighbors_centered = neighbors_aligned[1:,:] - word_aligned
+
+		word_lawful_good = indices[find_most(base_lawful + base_good, neighbors_centered)]
+		word_lawful_neutral = indices[find_most(base_lawful, neighbors_centered)]
+		word_lawful_evil = indices[find_most(base_lawful - base_good, neighbors_centered)]
+		word_neutral_good = indices[find_most(base_good, neighbors_centered)]
+		word_neutral_neutral = indices[0]
+		word_neutral_evil = indices[find_most(-base_good, neighbors_centered)]
+		word_chaotic_good = indices[find_most(-base_lawful + base_good, neighbors_centered)]
+		word_chaotic_neutral = indices[find_most(-base_lawful, neighbors_centered)]
+		word_chaotic_evil = indices[find_most(-base_lawful - base_good, neighbors_centered)]
+
+		table = (
+			(word_lawful_good,    word_neutral_good,    word_chaotic_good),
+			(word_lawful_neutral, word_neutral_neutral, word_chaotic_neutral),
+			(word_lawful_evil,    word_neutral_evil,    word_chaotic_evil),
+		)
+
+		for row in table:
+				print(*dictionary[np.array(row)], sep=' ')
 
 if __name__ == '__main__':
 	main()
