@@ -8,6 +8,15 @@ Download dictionary and embeddings from the [releases page]. The file *numberbat
 
 [releases page]: https://github.com/GrantMoyer/word_alignment/releases/new
 
+## Example ##
+
+```
+> python word_alignment.py -n100 unearthly
+peculiarness eery eery
+strange_looking unearthly eerie
+lovecraftian wonderbeast phantasmal
+```
+
 ## Usage ##
 
 ```
