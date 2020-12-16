@@ -41,13 +41,13 @@ def main():
 	parser.add_argument(
 		'-d', '--dictionary',
 		metavar='file',
-		default='numberbatch-en-19.08-dictionary.npy.lz4',
+		default='numberbatch-en-19.08/dictionary.npy.lz4',
 		help='A data file containing the dictionary. By default %(default)s.',
 	)
 	parser.add_argument(
 		'-e', '--embeddings',
 		metavar='file',
-		default='numberbatch-en-19.08-embeddings.npy.lz4',
+		default='numberbatch-en-19.08/embeddings.npy.lz4',
 		help='A data file containing word embeddings of the dictionary. By default %(default)s.',
 	)
 	parser.add_argument(
