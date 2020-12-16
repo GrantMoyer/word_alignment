@@ -6,7 +6,7 @@ Download dictionary and embeddings from the [releases page]. The file *numberbat
     > . ./.venv/bin/activate
     > pip install -r requirements.txt
 
-[releases page]: https://github.com/GrantMoyer/word_alignment/releases/new
+[releases page]: https://github.com/GrantMoyer/word_alignment/releases
 
 ## Example ##
 
