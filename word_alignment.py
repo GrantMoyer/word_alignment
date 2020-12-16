@@ -29,9 +29,12 @@ def project_words(words, good, evil, lawful, chaotic):
 	return projected
 
 def find_most(base, words):
+	mag_base = np.linalg.norm(base)
+	mag_words = np.linalg.norm(words, axis=1)
 	proj = words * base
 	sum = proj.sum(axis=1)
-	return sum.argmax()
+	normalized_sum = sum / (mag_base * mag_words)
+	return normalized_sum.argmax()
 
 def main():
 	parser = argparse.ArgumentParser(description='Given an arbitrary english word, generates an alignment chart of similar words.')
